@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0f1e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ΔV Calc">
+  <title>Caída de Tensión — MK</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0a0f1e;
+      --surface:  #111827;
+      --border:   #1e2d45;
+      --accent:   #00e5ff;
+      --accent2:  #ff6b35;
+      --warn:     #ffcc00;
+      --ok:       #00e676;
+      --text:     #e0eaf8;
+      --muted:    #5a7090;
+      --mono:     'Share Tech Mono', monospace;
+      --sans:     'Barlow', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .logo svg { width: 22px; height: 22px; }
+    header h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      line-height: 1.1;
+    }
+    header h1 span { color: var(--accent); font-family: var(--mono); }
+    header small { color: var(--muted); font-size: .7rem; font-weight: 300; display: block; }
+
+    /* ── MAIN ── */
+    main { flex: 1; padding: 16px; max-width: 480px; margin: 0 auto; width: 100%; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px; margin-bottom: 18px;
+    }
+    .tab {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 4px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: .75rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      line-height: 1.3;
+    }
+    .tab.active {
+      background: #0d2035;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .tab .badge {
+      display: block;
+      font-size: .65rem;
+      opacity: .7;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    /* ── FIELDS ── */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: .72rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+      letter-spacing: .05em;
+    }
+    .field label em {
+      font-style: normal;
+      font-family: var(--mono);
+      color: var(--accent);
+      font-size: .8rem;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    input[type="number"], select {
+      width: 100%;
+      background: #0d1828;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1rem;
+      padding: 10px 48px 10px 14px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color .2s;
+    }
+    select { padding-right: 14px; }
+    input[type="number"]:focus,
+    select:focus { border-color: var(--accent); }
+    .unit {
+      position: absolute; right: 12px;
+      font-family: var(--mono);
+      font-size: .7rem;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    /* segmented select */
+    .seg {
+      display: grid;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .seg-2 { grid-template-columns: 1fr 1fr; }
+    .seg-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .seg label {
+      display: block;
+      text-align: center;
+      padding: 9px 4px;
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      transition: all .15s;
+      margin: 0;
+    }
+    .seg label:last-child { border-right: none; }
+    .seg input[type="radio"] { display: none; }
+    .seg input[type="radio"]:checked + label {
+      background: #0d2035;
+      color: var(--accent);
+    }
+
+    /* ── SECCIÓN SELECTOR ── */
+    .sec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .sec-btn {
+      background: #0d1828;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: .78rem;
+      padding: 8px 2px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .sec-btn.active {
+      background: #0d2035;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .sec-custom {
+      grid-column: span 4;
+      margin-top: 4px;
+    }
+
+    /* ── CALCULAR ── */
+    .btn-calc {
+      width: 100%;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      cursor: pointer;
+      margin-bottom: 14px;
+      transition: opacity .15s, transform .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-calc:active { opacity: .85; transform: scale(.98); }
+
+    /* ── RESULTADO ── */
+    #resultado { display: none; }
+    #resultado.visible { display: block; }
+
+    .res-main {
+      background: #060e1a;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 18px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .res-dv {
+      font-family: var(--mono);
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .res-dv .unit-big { font-size: 1.2rem; color: var(--muted); }
+    .res-label { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+
+    .res-pct {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      margin-top: 10px;
+    }
+    .pill {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: .8rem;
+      font-family: var(--mono);
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    .pill.ok  { background: #003320; color: var(--ok);  border: 1px solid var(--ok);  }
+    .pill.warn{ background: #332800; color: var(--warn); border: 1px solid var(--warn); }
+    .pill.bad { background: #330d00; color: var(--accent2); border: 1px solid var(--accent2); }
+
+    .res-detail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .res-item {
+      background: #060e1a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .res-item .val {
+      font-family: var(--mono);
+      font-size: .95rem;
+      color: var(--accent);
+    }
+    .res-item .lbl {
+      font-size: .65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: 2px;
+    }
+
+    /* formula hint */
+    .formula-hint {
+      background: #060e1a;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.7;
+    }
+    .formula-hint strong { color: var(--accent2); }
+
+    /* ── TABLA SECCIONES ── */
+    .ref-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .75rem;
+      font-family: var(--mono);
+    }
+    .ref-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 400;
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ref-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #131e2e;
+      color: var(--text);
+    }
+    .ref-table tr:hover td { background: #0d1828; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 12px;
+      font-size: .65rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+    }
+
+    /* ── INSTALL BANNER ── */
+    #install-banner {
+      display: none;
+      background: #0d2035;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      font-size: .8rem;
+      align-items: center;
+      gap: 12px;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner p { flex: 1; color: var(--text); line-height: 1.4; }
+    #btn-install {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-family: var(--mono);
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #btn-dismiss {
+      background: none; border: none; color: var(--muted);
+      font-size: 1.2rem; cursor: pointer; padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </svg>
+  </div>
+  <div>
+    <h1><span>ΔV</span> Caída de Tensión</h1>
+    <small>MK Servicios Eléctricos</small>
+  </div>
+</header>
+
+<main>
+
+  <div id="install-banner">
+    <p>Instalá esta app en tu pantalla de inicio para usarla sin internet.</p>
+    <button id="btn-install">Instalar</button>
+    <button id="btn-dismiss">✕</button>
+  </div>
+
+  <!-- TABS TIPO -->
+  <div class="tabs">
+    <div class="tab active" data-tipo="CC" onclick="setTipo('CC')">
+      CC<span class="badge">Continua</span>
+    </div>
+    <div class="tab" data-tipo="CAM" onclick="setTipo('CAM')">
+      CA Mono<span class="badge">1φ</span>
+    </div>
+    <div class="tab" data-tipo="CAT" onclick="setTipo('CAT')">
+      CA Trifás<span class="badge">3φ</span>
+    </div>
+  </div>
+
+  <!-- PARÁMETROS -->
+  <div class="card">
+    <div class="card-title">⚡ Parámetros del circuito</div>
+
+    <div class="field">
+      <label>Material del conductor</label>
+      <div class="seg seg-2">
+        <input type="radio" name="material" id="m-cu" value="cu" checked>
+        <label for="m-cu">Cobre</label>
+        <input type="radio" name="material" id="m-al" value="al">
+        <label for="m-al">Aluminio</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Sección del conductor <em>S</em></label>
+      <div class="sec-grid" id="sec-grid">
+        <!-- populated by JS -->
+      </div>
+      <div class="sec-custom field" style="margin-bottom:0">
+        <div class="input-wrap">
+          <input type="number" id="seccion" min="0.5" max="630" step="0.1" placeholder="Otra sección..." value="">
+          <span class="unit">mm²</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Longitud <em>L</em></label>
+      <div class="input-wrap">
+        <input type="number" id="longitud" min="1" max="9999" step="1" placeholder="Metros" value="">
+        <span class="unit">m</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Corriente <em>I</em></label>
+      <div class="input-wrap">
+        <input type="number" id="corriente" min="0.1" max="9999" step="0.1" placeholder="Amperios" value="">
+        <span class="unit">A</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Tensión nominal <em>Vn</em></label>
+      <div class="seg seg-3" id="tension-preset">
+        <input type="radio" name="vn" id="v12"  value="12"  ><label for="v12">12 V</label>
+        <input type="radio" name="vn" id="v24"  value="24"  ><label for="v24">24 V</label>
+        <input type="radio" name="vn" id="v220" value="220" checked><label for="v220">220 V</label>
+        <input type="radio" name="vn" id="v380" value="380" ><label for="v380">380 V</label>
+        <input type="radio" name="vn" id="v48"  value="48"  ><label for="v48">48 V</label>
+        <input type="radio" name="vn" id="vcus" value=""    ><label for="vcus">Otra</label>
+      </div>
+      <div class="input-wrap" id="wrap-vn-custom" style="margin-top:6px; display:none">
+        <input type="number" id="vn-custom" min="1" max="100000" step="1" placeholder="Tensión nominal">
+        <span class="unit">V</span>
+      </div>
+    </div>
+
+    <!-- COS PHI: solo CA -->
+    <div class="field" id="field-cosphi" style="display:none">
+      <label>Factor de potencia <em>cos φ</em></label>
+      <div class="seg seg-3">
+        <input type="radio" name="cosphi" id="cp09"  value="0.9"  checked><label for="cp09">0.9</label>
+        <input type="radio" name="cosphi" id="cp085" value="0.85"       ><label for="cp085">0.85</label>
+        <input type="radio" name="cosphi" id="cp08"  value="0.8"        ><label for="cp08">0.8</label>
+        <input type="radio" name="cosphi" id="cp095" value="0.95"       ><label for="cp095">0.95</label>
+        <input type="radio" name="cosphi" id="cp1"   value="1"          ><label for="cp1">1.0</label>
+        <input type="radio" name="cosphi" id="cpcus" value=""           ><label for="cpcus">Otro</label>
+      </div>
+      <div class="input-wrap" id="wrap-cosphi-custom" style="margin-top:6px; display:none">
+        <input type="number" id="cosphi-custom" min="0.1" max="1" step="0.01" placeholder="0.00 — 1.00">
+      </div>
+    </div>
+
+  </div>
+
+  <button class="btn-calc" onclick="calcular()">CALCULAR ΔV</button>
+
+  <!-- RESULTADO -->
+  <div id="resultado">
+
+    <div class="res-main">
+      <div class="res-label">Caída de tensión</div>
+      <div class="res-dv" id="res-dv">— <span class="unit-big">V</span></div>
+      <div class="res-pct" id="res-pct">— %</div>
+      <div id="res-pill"></div>
+    </div>
+
+    <div class="res-detail">
+      <div class="res-item">
+        <div class="val" id="rd-r">—</div>
+        <div class="lbl">Resist. total (Ω)</div>
+      </div>
+      <div class="res-item">
+        <div class="val" id="rd-ptensión">—</div>
+        <div class="lbl">P. disipada (W)</div>
+      </div>
+      <div class="res-item">
+        <div class="val" id="rd-vfinal">—</div>
+        <div class="lbl">V final (V)</div>
+      </div>
+      <div class="res-item">
+        <div class="val" id="rd-longmax">—</div>
+        <div class="lbl">Long. máx. 3% (m)</div>
+      </div>
+    </div>
+
+    <div class="formula-hint" id="formula-hint"></div>
+
+  </div>
+
+  <!-- TABLA REF -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">📋 Resistividad de referencia</div>
+    <table class="ref-table">
+      <tr><th>Material</th><th>ρ (Ω·mm²/m)</th><th>σ (m/Ω·mm²)</th></tr>
+      <tr><td>Cobre</td><td>0.01786</td><td>56</td></tr>
+      <tr><td>Aluminio</td><td>0.02857</td><td>35</td></tr>
+    </table>
+    <div style="font-size:.65rem; color:var(--muted); margin-top:8px; font-family:var(--mono)">
+      Valores a 20 °C. Para temperatura T: ρ(T) = ρ₂₀·[1 + α·(T−20)]<br>
+      α_Cu = 0.00393 · α_Al = 0.00403
+    </div>
+  </div>
+
+</main>
+
+<footer>MK Servicios Eléctricos · Valle de Punilla · v1.0</footer>
+
+<script>
+  // ── SECCIONES NORMALIZADAS ──
+  const SECCIONES = [1.5, 2.5, 4, 6, 10, 16, 25, 35];
+
+  const rho = { cu: 0.01786, al: 0.02857 };
+
+  let tipoActual = 'CC';
+
+  function buildSecGrid() {
+    const g = document.getElementById('sec-grid');
+    g.innerHTML = '';
+    SECCIONES.forEach(s => {
+      const b = document.createElement('button');
+      b.className = 'sec-btn';
+      b.textContent = s;
+      b.type = 'button';
+      b.onclick = () => {
+        document.querySelectorAll('.sec-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        document.getElementById('seccion').value = s;
+      };
+      g.appendChild(b);
+    });
+  }
+  buildSecGrid();
+
+  // Limpiar selección de botones si el usuario escribe a mano
+  document.getElementById('seccion').addEventListener('input', () => {
+    document.querySelectorAll('.sec-btn').forEach(x => x.classList.remove('active'));
+  });
+
+  function setTipo(t) {
+    tipoActual = t;
+    document.querySelectorAll('.tab').forEach(el => {
+      el.classList.toggle('active', el.dataset.tipo === t);
+    });
+    document.getElementById('field-cosphi').style.display = (t !== 'CC') ? '' : 'none';
+  }
+
+  // Tensión custom
+  document.querySelectorAll('input[name="vn"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('wrap-vn-custom').style.display = r.value === '' ? '' : 'none';
+    });
+  });
+
+  // Cos phi custom
+  document.querySelectorAll('input[name="cosphi"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.getElementById('wrap-cosphi-custom').style.display = r.value === '' ? '' : 'none';
+    });
+  });
+
+  function getVn() {
+    const sel = document.querySelector('input[name="vn"]:checked');
+    if (sel && sel.value !== '') return parseFloat(sel.value);
+    return parseFloat(document.getElementById('vn-custom').value) || null;
+  }
+
+  function getCosphi() {
+    if (tipoActual === 'CC') return 1;
+    const sel = document.querySelector('input[name="cosphi"]:checked');
+    if (sel && sel.value !== '') return parseFloat(sel.value);
+    return parseFloat(document.getElementById('cosphi-custom').value) || null;
+  }
+
+  function getMaterial() {
+    return document.querySelector('input[name="material"]:checked').value;
+  }
+
+  function calcular() {
+    const S = parseFloat(document.getElementById('seccion').value);
+    const L = parseFloat(document.getElementById('longitud').value);
+    const I = parseFloat(document.getElementById('corriente').value);
+    const Vn = getVn();
+    const fp = getCosphi();
+    const mat = getMaterial();
+
+    if (!S || !L || !I || !Vn || !fp) {
+      alert('Completá todos los campos antes de calcular.');
+      return;
+    }
+
+    const ρ = rho[mat];
+
+    let dV, factor, formulaStr;
+
+    if (tipoActual === 'CC') {
+      // ΔV = 2·L·I·ρ / S
+      factor = 2;
+      dV = (2 * L * I * ρ) / S;
+      formulaStr = `<strong>CC / Monofásico:</strong>\nΔV = 2 · L · I · ρ / S\nΔV = 2 × ${L} × ${I} × ${ρ} / ${S}\n= ${dV.toFixed(4)} V`;
+    } else if (tipoActual === 'CAM') {
+      // CA monofásico con fp: ΔV = 2·L·I·ρ·cos(φ) / S
+      dV = (2 * L * I * ρ * fp) / S;
+      formulaStr = `<strong>CA Monofásico (cos φ = ${fp}):</strong>\nΔV = 2 · L · I · ρ · cosφ / S\nΔV = 2 × ${L} × ${I} × ${ρ} × ${fp} / ${S}\n= ${dV.toFixed(4)} V`;
+    } else {
+      // Trifásico: ΔV = √3·L·I·ρ·cos(φ) / S
+      dV = (Math.sqrt(3) * L * I * ρ * fp) / S;
+      formulaStr = `<strong>CA Trifásico (cos φ = ${fp}):</strong>\nΔV = √3 · L · I · ρ · cosφ / S\nΔV = √3 × ${L} × ${I} × ${ρ} × ${fp} / ${S}\n= ${dV.toFixed(4)} V`;
+    }
+
+    const pct = (dV / Vn) * 100;
+    const Vfinal = Vn - dV;
+
+    // Resistencia total (ambos conductores)
+    const R = (tipoActual === 'CAT') ? (Math.sqrt(3) * L * ρ / S) : (2 * L * ρ / S);
+    const Pdis = I * I * (2 * L * ρ / S);  // siempre en los dos conductores
+
+    // Longitud máxima para 3%
+    const maxPct = 0.03;
+    let Lmax;
+    if (tipoActual === 'CC')      Lmax = (maxPct * Vn * S) / (2 * I * ρ);
+    else if (tipoActual === 'CAM') Lmax = (maxPct * Vn * S) / (2 * I * ρ * fp);
+    else                           Lmax = (maxPct * Vn * S) / (Math.sqrt(3) * I * ρ * fp);
+
+    // Mostrar
+    document.getElementById('res-dv').innerHTML = `${dV.toFixed(2)} <span class="unit-big">V</span>`;
+    document.getElementById('res-pct').textContent = `${pct.toFixed(2)} %`;
+
+    const pill = document.getElementById('res-pill');
+    if (pct <= 3) {
+      pill.innerHTML = `<span class="pill ok">✓ OK — dentro del 3%</span>`;
+    } else if (pct <= 5) {
+      pill.innerHTML = `<span class="pill warn">⚠ Atención — entre 3% y 5%</span>`;
+    } else {
+      pill.innerHTML = `<span class="pill bad">✗ Excede el 5% — sección insuficiente</span>`;
+    }
+
+    document.getElementById('rd-r').textContent = R.toFixed(4) + ' Ω';
+    document.getElementById('rd-ptensión').textContent = Pdis.toFixed(2) + ' W';
+    document.getElementById('rd-vfinal').textContent = Vfinal.toFixed(2) + ' V';
+    document.getElementById('rd-longmax').textContent = Lmax.toFixed(1) + ' m';
+    document.getElementById('formula-hint').innerHTML = formulaStr.replace(/\n/g, '<br>');
+
+    const res = document.getElementById('resultado');
+    res.classList.add('visible');
+    res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── PWA INSTALL ──
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-banner').classList.add('show');
+  });
+  document.getElementById('btn-install').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    document.getElementById('install-banner').classList.remove('show');
+  });
+  document.getElementById('btn-dismiss').addEventListener('click', () => {
+    document.getElementById('install-banner').classList.remove('show');
+  });
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
